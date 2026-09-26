@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SiteFooter, SiteHeader } from "@/components/site-shell";
 import { VehicleProvider } from "@/components/vehicle-context";
+import { getChargingCatalogue } from "@/providers/catalogue.server";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,13 +13,14 @@ export const metadata: Metadata = {
     "Compare EV charging cost, speed and reliability for your car. Plan a smarter electric journey with ChargeOnce.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const catalogue = await getChargingCatalogue();
   return (
     <html lang="en-GB">
       <body>
-        <VehicleProvider>
+        <VehicleProvider catalogue={catalogue}>
           <a className="skip-link" href="#main-content">
             Skip to content
           </a>

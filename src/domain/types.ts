@@ -12,6 +12,8 @@ export interface Vehicle {
   maxAcKw: number;
   connectors: Connector[];
   imageTone: "blue" | "mint" | "violet";
+  efficiencyMilesPerKwh?: number;
+  isDemo?: boolean;
 }
 
 export interface Charger {
@@ -31,6 +33,8 @@ export interface Charger {
   availableStalls: number | null;
   x: number;
   y: number;
+  locationId?: string;
+  isDemo?: boolean;
 }
 
 export interface ChargingEstimate {

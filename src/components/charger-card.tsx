@@ -63,6 +63,7 @@ export function ChargerCard({
       {!compact && (
         <div className="charger-foot">
           <span>
+            {charger.isDemo && "DEMO DATA · "}
             {charger.availableStalls === null
               ? "Availability not known"
               : `${charger.availableStalls} of ${charger.stalls} connectors available`}{" "}

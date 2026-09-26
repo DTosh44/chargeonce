@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { ArrowRight, CarFront, CheckCircle2, Info } from "lucide-react";
-import { vehicles } from "@/data/demo";
 import { useVehicle } from "@/components/vehicle-context";
 import { Card, PageHeader, buttonStyles } from "@/components/ui";
 
 export function CarsContent() {
-  const { vehicle, setVehicleId } = useVehicle();
+  const { vehicle, vehicles, setVehicleId } = useVehicle();
   return (
     <div className="shell page-section">
       <PageHeader

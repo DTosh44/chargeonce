@@ -3,6 +3,16 @@ import { chargers, vehicles } from "../data/demo";
 import { estimateCharge, isCompatible, recommendedChargers } from "./charging";
 
 describe("charging estimates", () => {
+  it("uses persisted efficiency and handles an incompatible catalogue", () => {
+    expect(
+      estimateCharge({ ...vehicles[0], efficiencyMilesPerKwh: 4 }, chargers[0])
+        .costPer100Miles,
+    ).toBeCloseTo(17.25);
+    expect(
+      recommendedChargers({ ...vehicles[0], connectors: ["CHAdeMO"] }, chargers)
+        .best,
+    ).toBeUndefined();
+  });
   it("calculates cost and time from the vehicle and charger", () => {
     const result = estimateCharge(vehicles[0], chargers[0]);
     expect(result.energyNeededKwh).toBe(36);
@@ -22,7 +32,7 @@ describe("charging estimates", () => {
     expect(estimateCharge(vehicles[0], chargers[2]).effectiveKw).toBe(11);
     expect(isCompatible(vehicles[0], chargers[2])).toBe(true);
     const picks = recommendedChargers(vehicles[0], chargers);
-    expect(picks.cheapest.id).toBe("bravo");
-    expect(picks.fastest.id).toBe("delta");
+    expect(picks.cheapest?.id).toBe("bravo");
+    expect(picks.fastest?.id).toBe("delta");
   });
 });

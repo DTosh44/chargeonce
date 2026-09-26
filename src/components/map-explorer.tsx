@@ -2,14 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { Info, Search, SlidersHorizontal } from "lucide-react";
-import { chargers } from "@/data/demo";
 import { ChargerCard } from "@/components/charger-card";
 import { VehicleSelector, useVehicle } from "@/components/vehicle-context";
 import { Input, PageHeader, Select } from "@/components/ui";
 import { isCompatible } from "@/lib/charging";
 
 export function MapExplorer() {
-  const { vehicle } = useVehicle();
+  const { vehicle, chargers } = useVehicle();
   const [search, setSearch] = useState("");
   const [speed, setSpeed] = useState("all");
   const [availableOnly, setAvailableOnly] = useState(false);
@@ -38,7 +37,7 @@ export function MapExplorer() {
               ? b.maxKw - a.maxKw
               : a.distanceMiles - b.distanceMiles,
         ),
-    [search, speed, availableOnly, sort, vehicle],
+    [search, speed, availableOnly, sort, vehicle, chargers],
   );
 
   return (

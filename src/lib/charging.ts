@@ -23,7 +23,9 @@ export function estimateCharge(
 
   return {
     costPer100Miles:
-      (vehicle.batteryKwh / vehicle.estimatedRangeMiles) * 100 * rate,
+      (vehicle.efficiencyMilesPerKwh
+        ? 100 / vehicle.efficiencyMilesPerKwh
+        : (vehicle.batteryKwh / vehicle.estimatedRangeMiles) * 100) * rate,
     costToTarget:
       energyNeededKwh * rate +
       (energyNeededKwh > 0 ? charger.connectionFeePence / 100 : 0),
@@ -58,17 +60,21 @@ export function recommendedChargers(vehicle: Vehicle, options: Charger[]) {
   );
   const pool = available.length ? available : compatible;
   return {
-    best: [...pool].sort((a, b) => score(b, vehicle) - score(a, vehicle))[0],
-    cheapest: [...pool].sort(
-      (a, b) =>
-        estimateCharge(vehicle, a).costToTarget -
-        estimateCharge(vehicle, b).costToTarget,
-    )[0],
-    fastest: [...pool].sort(
-      (a, b) =>
-        estimateCharge(vehicle, a).timeToTargetMinutes -
-        estimateCharge(vehicle, b).timeToTargetMinutes,
-    )[0],
+    best: [...pool].sort((a, b) => score(b, vehicle) - score(a, vehicle)).at(0),
+    cheapest: [...pool]
+      .sort(
+        (a, b) =>
+          estimateCharge(vehicle, a).costToTarget -
+          estimateCharge(vehicle, b).costToTarget,
+      )
+      .at(0),
+    fastest: [...pool]
+      .sort(
+        (a, b) =>
+          estimateCharge(vehicle, a).timeToTargetMinutes -
+          estimateCharge(vehicle, b).timeToTargetMinutes,
+      )
+      .at(0),
   };
 }
 

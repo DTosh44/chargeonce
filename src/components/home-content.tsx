@@ -13,14 +13,13 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
-import { chargers } from "@/data/demo";
 import { recommendedChargers } from "@/lib/charging";
 import { VehicleSelector, useVehicle } from "@/components/vehicle-context";
 import { Badge, Card, Progress, buttonStyles } from "@/components/ui";
 import { ChargerCard } from "@/components/charger-card";
 
 export function HomeContent() {
-  const { vehicle } = useVehicle();
+  const { vehicle, chargers } = useVehicle();
   const picks = recommendedChargers(vehicle, chargers);
   return (
     <>
@@ -65,14 +64,20 @@ export function HomeContent() {
           />
         </div>
         <div className="recommendations-grid">
-          {(["best", "cheapest", "fastest"] as const).map((type) => (
-            <ChargerCard
-              key={type}
-              charger={picks[type]}
-              vehicle={vehicle}
-              tag={type.toUpperCase()}
-            />
-          ))}
+          {(["best", "cheapest", "fastest"] as const).map((type) =>
+            picks[type] ? (
+              <ChargerCard
+                key={type}
+                charger={picks[type]!}
+                vehicle={vehicle}
+                tag={type.toUpperCase()}
+              />
+            ) : (
+              <Card key={type} className="empty-state">
+                No compatible demo charger is available for this recommendation.
+              </Card>
+            ),
+          )}
         </div>
         <p className="recommendations-note">
           Illustrative locations, tariffs, reliability and availability.

@@ -1,15 +1,18 @@
 "use client";
 
 import { createContext, useContext, useSyncExternalStore } from "react";
-import { vehicles } from "@/data/demo";
+import type { ChargingCatalogue } from "@/domain/catalogue";
 import type { Vehicle } from "@/domain/types";
 import { Select } from "@/components/ui";
 
 const STORAGE_KEY = "chargeonce-demo-vehicle";
-const VehicleContext = createContext<{
-  vehicle: Vehicle;
-  setVehicleId: (id: string) => void;
-} | null>(null);
+const VehicleContext = createContext<
+  | ({
+      vehicle: Vehicle;
+      setVehicleId: (id: string) => void;
+    } & ChargingCatalogue)
+  | null
+>(null);
 const CHANGE_EVENT = "chargeonce-vehicle-change";
 const subscribe = (onChange: () => void) => {
   window.addEventListener("storage", onChange);
@@ -19,23 +22,48 @@ const subscribe = (onChange: () => void) => {
     window.removeEventListener(CHANGE_EVENT, onChange);
   };
 };
-const getSnapshot = () =>
-  window.localStorage.getItem(STORAGE_KEY) ?? vehicles[0].id;
-const getServerSnapshot = () => vehicles[0].id;
+let memoryVehicleId: string | null = null;
+const legacyVehicleIds: Record<string, string> = {
+  "model-3": "10000000-0000-4000-8000-000000000001",
+  "id-3": "10000000-0000-4000-8000-000000000002",
+  kona: "10000000-0000-4000-8000-000000000003",
+};
+const getSnapshot = () => {
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY) ?? memoryVehicleId;
+    return stored ? (legacyVehicleIds[stored] ?? stored) : null;
+  } catch {
+    return memoryVehicleId;
+  }
+};
+const getServerSnapshot = () => null;
 
-export function VehicleProvider({ children }: { children: React.ReactNode }) {
+export function VehicleProvider({
+  children,
+  catalogue,
+}: {
+  children: React.ReactNode;
+  catalogue: ChargingCatalogue;
+}) {
+  const { vehicles } = catalogue;
   const vehicleId = useSyncExternalStore(
     subscribe,
     getSnapshot,
     getServerSnapshot,
   );
   const selectVehicle = (id: string) => {
-    window.localStorage.setItem(STORAGE_KEY, id);
+    memoryVehicleId = id;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, id);
+    } catch {
+      /* Private browsing may disable storage. */
+    }
     window.dispatchEvent(new Event(CHANGE_EVENT));
   };
   return (
     <VehicleContext.Provider
       value={{
+        ...catalogue,
         vehicle:
           vehicles.find((vehicle) => vehicle.id === vehicleId) ?? vehicles[0],
         setVehicleId: selectVehicle,
@@ -60,7 +88,7 @@ export function VehicleSelector({
   label?: string;
   id?: string;
 }) {
-  const { vehicle, setVehicleId } = useVehicle();
+  const { vehicle, vehicles, setVehicleId } = useVehicle();
   return (
     <label className="field-label" htmlFor={id}>
       {label}

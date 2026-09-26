@@ -9,10 +9,9 @@ import {
   Route as RouteIcon,
   Zap,
 } from "lucide-react";
-import { chargers } from "@/data/demo";
 import { VehicleSelector, useVehicle } from "@/components/vehicle-context";
 import { Card, Metric, PageHeader, Select } from "@/components/ui";
-import { minutes, pounds } from "@/lib/charging";
+import { minutes, pounds, recommendedChargers } from "@/lib/charging";
 import { useState } from "react";
 
 const routes = [
@@ -47,7 +46,7 @@ const routes = [
 ];
 
 export function RoutePlanner() {
-  const { vehicle } = useVehicle();
+  const { vehicle, chargers } = useVehicle();
   const [routeId, setRouteId] = useState("manchester");
   const [startingCharge, setStartingCharge] = useState(40);
   const route = routes.find((item) => item.id === routeId) ?? routes[0];
@@ -56,12 +55,23 @@ export function RoutePlanner() {
     (vehicle.estimatedRangeMiles * (startingCharge - 10)) / 100,
   );
   const deficitMiles = Math.max(0, route.miles - usableMiles);
-  const stop = chargers.find((charger) => charger.id === "alpha")!;
+  const stop = recommendedChargers(vehicle, chargers).best;
   const energyAtStop =
     (deficitMiles / vehicle.estimatedRangeMiles) * vehicle.batteryKwh;
-  const effectiveKw = Math.min(stop.maxKw, vehicle.maxDcKw);
-  const stopMinutes = (energyAtStop / (effectiveKw * 0.78)) * 60;
-  const chargingCost = (energyAtStop * stop.pricePencePerKwh) / 100;
+  const requiredTopUps = Math.ceil(energyAtStop / (vehicle.batteryKwh * 0.7));
+  const effectiveKw = stop
+    ? Math.min(
+        stop.maxKw,
+        stop.connector === "Type 2" ? vehicle.maxAcKw : vehicle.maxDcKw,
+      )
+    : 0;
+  const stopMinutes =
+    effectiveKw > 0 ? (energyAtStop / (effectiveKw * 0.78)) * 60 : 0;
+  const chargingCost = stop
+    ? (energyAtStop * stop.pricePencePerKwh +
+        requiredTopUps * stop.connectionFeePence) /
+      100
+    : 0;
   const drivingMinutes = (route.miles / 55) * 60;
   const needsStop = deficitMiles > 0;
 
@@ -145,11 +155,21 @@ export function RoutePlanner() {
             <Metric label="Distance" value={`${route.miles} mi`} />
             <Metric
               label="Likely travel time"
-              value={minutes(drivingMinutes + stopMinutes)}
+              value={
+                needsStop && !stop
+                  ? "Unknown"
+                  : minutes(drivingMinutes + stopMinutes)
+              }
             />
             <Metric
               label="Estimated charging"
-              value={needsStop ? pounds(chargingCost) : "£0.00"}
+              value={
+                needsStop && !stop
+                  ? "Unknown"
+                  : needsStop
+                    ? pounds(chargingCost)
+                    : "£0.00"
+              }
             />
           </div>
           <div className="route-results">
@@ -160,14 +180,16 @@ export function RoutePlanner() {
             </h3>
             <p className="section-copy" style={{ fontSize: 13 }}>
               {needsStop
-                ? `Starting at ${startingCharge}%, your estimated usable range with a 10% arrival reserve is ${Math.round(usableMiles)} miles. A top-up of roughly ${Math.round(energyAtStop)} kWh would cover the remaining distance.`
+                ? `Starting at ${startingCharge}%, your estimated usable range with a 10% arrival reserve is ${Math.round(usableMiles)} miles. Roughly ${Math.round(energyAtStop)} kWh of additional energy across ${requiredTopUps} charging stop${requiredTopUps === 1 ? "" : "s"} would cover the remaining distance, using a 10–80% charging window.`
                 : `Your estimated usable range with a 10% arrival reserve is ${Math.round(usableMiles)} miles—enough for this example route.`}
             </p>
-            {needsStop && (
+            {needsStop && stop && (
               <div className="route-stop">
-                <span className="stop-number">1</span>
+                <span className="stop-number">
+                  {requiredTopUps === 1 ? "1" : `1–${requiredTopUps}`}
+                </span>
                 <div>
-                  <h4>Illustrative rapid charge</h4>
+                  <h4>Illustrative charging allowance · DEMO DATA</h4>
                   <p>
                     Example tariff: {stop.pricePencePerKwh}p/kWh · up to{" "}
                     {effectiveKw} kW for your car
@@ -182,6 +204,9 @@ export function RoutePlanner() {
             <div className="notice">
               <Clock3 size={16} aria-hidden="true" />
               <span>
+                {needsStop &&
+                  !stop &&
+                  "No compatible charger is present in this demo catalogue. "}
                 Planning estimate only. Real-world range, traffic, weather,
                 topography, charger access and charging curves can change the
                 result.
