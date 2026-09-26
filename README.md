@@ -41,6 +41,7 @@ pnpm build
 - `src/data`: clearly labelled seed/demo records.
 - `src/lib`: calculations and formatting.
 - `src/providers`: data-provider boundary for a future licensed live feed.
+- `src/config`: application identity, locale and feature flags.
 - `src/components`: reusable UI and interactive features.
 - `src/app`: App Router pages and metadata.
 
