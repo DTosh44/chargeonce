@@ -4,8 +4,9 @@ import type {
   ChargingQuote,
   EfficiencySource,
 } from "./charging";
+import type { DataProvenance } from "./charging-data";
 export type Connector = "CCS" | "Type 2" | "CHAdeMO";
-export type ChargerStatus = "Available" | "Busy" | "Unknown";
+export type ChargerStatus = "Available" | "Busy" | "Unavailable" | "Unknown";
 
 export interface Vehicle {
   id: string;
@@ -31,19 +32,23 @@ export interface Charger {
   network: string;
   location: string;
   postcode: string;
-  distanceMiles: number;
+  distanceMiles: number | null;
   maxKw: number;
   connector: Connector;
-  pricePencePerKwh: number;
-  connectionFeePence: number;
+  pricePencePerKwh: number | null;
+  connectionFeePence: number | null;
   status: ChargerStatus;
-  reliabilityPercent: number;
-  stalls: number;
+  reliabilityPercent: number | null;
+  stalls: number | null;
   availableStalls: number | null;
   x: number;
   y: number;
   locationId?: string;
   isDemo?: boolean;
+  provenance?: DataProvenance;
+  availabilityProvenance?: DataProvenance;
+  tariffProvenance?: DataProvenance;
+  tariffDescription?: string | null;
 }
 
 export interface ChargingEstimate {

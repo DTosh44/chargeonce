@@ -1,15 +1,18 @@
 import { chargers, vehicles } from "../data/demo";
 import type { Charger, Vehicle } from "../domain/types";
 import type { ChargingCatalogue, FallbackReason } from "../domain/catalogue";
+export type { ChargingDataProvider } from "./charging/provider";
+export { MockChargingProvider } from "./charging/mock";
 
-export interface ChargingDataProvider {
+/** Legacy combined demo catalogue boundary; vehicles have their own VehicleService. */
+export interface ChargingCatalogueProvider {
   loadCatalogue(): Promise<ChargingCatalogue>;
   listChargers(): Promise<Charger[]>;
   listVehicles(): Promise<Vehicle[]>;
 }
 
 /** Replace this boundary with a licensed live source when integrations are ready. */
-export const demoDataProvider: ChargingDataProvider = {
+export const demoDataProvider: ChargingCatalogueProvider = {
   async loadCatalogue() {
     return { chargers, vehicles, source: "seeded" };
   },

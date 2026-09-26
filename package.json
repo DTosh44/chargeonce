@@ -13,7 +13,8 @@
     "db:start": "supabase start",
     "db:reset": "supabase db reset --local",
     "db:seed": "node scripts/seed.mjs",
-    "db:types": "node scripts/generate-database-types.mjs"
+    "db:types": "node scripts/generate-database-types.mjs",
+    "charging:import": "node --env-file-if-exists=.env.local scripts/import-chargers.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

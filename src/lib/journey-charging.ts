@@ -1,5 +1,9 @@
 import type { Charger, Vehicle } from "../domain/types";
-import { calculationCharger, calculationVehicle } from "./charging";
+import {
+  calculationCharger,
+  calculationVehicle,
+  hasUsableTariff,
+} from "./charging";
 import { ChargingInputError, estimateChargingSession } from "./charging-engine";
 
 /** Illustrative 10–80% stop allowance, not a route/geospatial charger planner. */
@@ -9,6 +13,7 @@ export function estimateJourneyCharging(
   distanceMiles: number,
   startingSocPercent: number,
 ) {
+  if (charger && !hasUsableTariff(charger)) charger = undefined;
   if (
     !Number.isFinite(distanceMiles) ||
     distanceMiles < 0 ||

@@ -80,6 +80,16 @@ export type LocationRow = Timestamped & {
   demo_metadata: Json;
   last_updated: string;
 };
+export type ChargingSnapshotRow = {
+  location_id: string;
+  provider: string;
+  external_id: string;
+  latitude: number;
+  longitude: number;
+  snapshot: Json;
+  fetched_at: string;
+  updated_at: string;
+};
 export type EvseRow = Timestamped & {
   id: string;
   location_id: string;
@@ -167,6 +177,16 @@ export type CommunityAvailabilityRow = Timestamped & {
 export type Database = {
   public: {
     Tables: {
+      charging_source_snapshots: Table<
+        ChargingSnapshotRow,
+        | "location_id"
+        | "provider"
+        | "external_id"
+        | "latitude"
+        | "longitude"
+        | "snapshot"
+        | "fetched_at"
+      >;
       profiles: Table<ProfileRow, "id">;
       vehicles: Table<
         VehicleRow,
@@ -239,6 +259,10 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      import_charging_sites: {
+        Args: { p_provider: string; p_sites: Json };
+        Returns: number;
+      };
       remove_user_vehicle: {
         Args: { p_user_vehicle_id: string };
         Returns: undefined;

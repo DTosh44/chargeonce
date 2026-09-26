@@ -1,12 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../../lib/supabase/database.types";
 import type { ChargingCatalogue } from "../../domain/catalogue";
-import type { ChargingDataProvider } from "../charging-data";
+import type { ChargingCatalogueProvider } from "../charging-data";
 import { projectDemoCatalogue } from "./catalogue";
 
 export function createSupabaseDataProvider(
   client: SupabaseClient<Database>,
-): ChargingDataProvider {
+): ChargingCatalogueProvider {
   let pending: Promise<ChargingCatalogue> | undefined;
   async function load(): Promise<ChargingCatalogue> {
     const signal = AbortSignal.timeout(5000);

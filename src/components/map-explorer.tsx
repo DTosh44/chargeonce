@@ -5,10 +5,11 @@ import { Info, Search, SlidersHorizontal } from "lucide-react";
 import { ChargerCard } from "@/components/charger-card";
 import { VehicleSelector, useVehicle } from "@/components/vehicle-context";
 import { Input, PageHeader, Select } from "@/components/ui";
-import { isCompatible } from "@/lib/charging";
+import { hasCurrentAvailability, isCompatible } from "@/lib/charging";
 
 export function MapExplorer() {
-  const { vehicle, chargers } = useVehicle();
+  const { vehicle, chargers, source, chargingData } = useVehicle();
+  const isDemo = source === "seeded" || source === "supabase-demo";
   const [search, setSearch] = useState("");
   const [speed, setSpeed] = useState("all");
   const [availableOnly, setAvailableOnly] = useState(false);
@@ -27,15 +28,18 @@ export function MapExplorer() {
                 .includes(query)) &&
             (speed === "all" ||
               (speed === "rapid" ? charger.maxKw >= 50 : charger.maxKw < 50)) &&
-            (!availableOnly || charger.status === "Available")
+            (!availableOnly ||
+              (hasCurrentAvailability(charger) &&
+                charger.status === "Available"))
           );
         })
         .sort((a, b) =>
           sort === "price"
-            ? a.pricePencePerKwh - b.pricePencePerKwh
+            ? (a.pricePencePerKwh ?? Infinity) -
+              (b.pricePencePerKwh ?? Infinity)
             : sort === "speed"
               ? b.maxKw - a.maxKw
-              : a.distanceMiles - b.distanceMiles,
+              : (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity),
         ),
     [search, speed, availableOnly, sort, vehicle, chargers],
   );
@@ -45,7 +49,7 @@ export function MapExplorer() {
       <PageHeader
         eyebrow="Find a charger"
         title="Find the right stop."
-        description="Compare illustrative chargers by what matters most: likely cost, time, availability and how well they suit your car."
+        description="Compare compatible chargers by likely cost, charging power and data confidence. Every result identifies its data source."
       />
       <div className="explorer-grid">
         <aside className="card filter-panel">
@@ -98,8 +102,15 @@ export function MapExplorer() {
             <div className="notice">
               <Info size={16} aria-hidden="true" />
               <span>
-                Demo locations, prices and availability are illustrative. Do not
-                navigate to a charger based on this preview.
+                {isDemo
+                  ? "DEMO DATA: locations, prices and availability are illustrative. Do not navigate using these records."
+                  : "EXTERNAL DATA: location records are not live stall availability. Unknown or stale tariffs do not produce cost quotes. Check the operator before travelling."}
+                {chargingData?.fallbackReason === "provider_unavailable" &&
+                  " The configured charging provider is unavailable; clearly marked demo data is shown instead."}
+                {chargingData?.fallbackReason === "missing_configuration" &&
+                  " No external provider is configured."}
+                {chargingData?.mayBeTruncated &&
+                  " Results are capped; this area may contain more locations."}
               </span>
             </div>
           </div>
@@ -108,11 +119,19 @@ export function MapExplorer() {
           <div
             className="map-panel"
             role="group"
-            aria-label="Illustrative map showing demo chargers near Marlow"
+            aria-label={
+              isDemo
+                ? "Illustrative map showing demo chargers near Marlow"
+                : "Schematic location overview near Marlow, not a street map"
+            }
           >
-            <div className="map-river" />
-            <div className="map-road" />
-            <div className="map-current" />
+            {isDemo && (
+              <>
+                <div className="map-river" />
+                <div className="map-road" />
+                <div className="map-current" />
+              </>
+            )}
             {filtered.map((charger) => (
               <button
                 type="button"
@@ -130,7 +149,12 @@ export function MapExplorer() {
                 {charger.maxKw} kW
               </button>
             ))}
-            <span className="map-caption">Illustrative map · Marlow area</span>
+            <span className="map-caption">
+              {isDemo
+                ? "Illustrative demo map"
+                : "Schematic overview · not for navigation"}{" "}
+              · Marlow area
+            </span>
           </div>
           <div className="results-header">
             <strong>

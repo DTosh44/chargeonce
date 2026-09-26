@@ -19,7 +19,8 @@ import { Badge, Card, Progress, buttonStyles } from "@/components/ui";
 import { ChargerCard } from "@/components/charger-card";
 
 export function HomeContent() {
-  const { vehicle, chargers } = useVehicle();
+  const { vehicle, chargers, source } = useVehicle();
+  const isDemo = source === "seeded" || source === "supabase-demo";
   const picks = recommendedChargers(vehicle, chargers);
   return (
     <>
@@ -52,7 +53,7 @@ export function HomeContent() {
       >
         <div className="recommendations-heading">
           <div>
-            <Badge>DEMO PREVIEW</Badge>
+            <Badge>{isDemo ? "DEMO PREVIEW" : "EXTERNAL DATA"}</Badge>
             <h2 id="recommendations-heading">
               A better match for your next charge.
             </h2>
@@ -74,16 +75,21 @@ export function HomeContent() {
               />
             ) : (
               <Card key={type} className="empty-state">
-                No compatible demo charger is available for this recommendation.
+                No compatible charger with a current structured tariff is
+                available for this cost comparison.{" "}
+                <Link href="/map">Browse locations</Link>.
               </Card>
             ),
           )}
         </div>
         <p className="recommendations-note">
-          Illustrative locations, tariffs, reliability and availability.
+          {isDemo
+            ? "Illustrative locations, tariffs, reliability and availability. "
+            : "External locations are not guaranteed live availability. Only current structured tariffs can be compared. "}
           Estimates assume a 20–80% charge and include 10% charging losses, with
           illustrative SOC curves or a generic fallback model. Recommendations
-          consider available, compatible demo chargers.
+          consider compatible chargers with known pricing; unknown tariffs are
+          excluded.
         </p>
       </section>
       <div className="shell stat-strip">

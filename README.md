@@ -1,6 +1,6 @@
 # ChargeOnce
 
-A mobile-first UK EV charging decision helper. This first release is a polished, interactive **demo**, not a live charger directory: locations, tariffs, availability, reliability and vehicle specifications are illustrative. There is no charging, payment, wallet, roaming or RFID functionality.
+A mobile-first UK EV charging decision helper. Development works with explicitly labelled **demo** data; optional providers supply external location records. External records are not automatically live occupancy or verified prices. There is no charging, payment, wallet, roaming or RFID functionality.
 
 ## Run locally
 
@@ -15,11 +15,21 @@ Open http://localhost:3000. No API keys or database are needed: Supabase credent
 
 ## Supabase data architecture
 
-All 17 core tables, RLS policies, constraints and development seeds are defined under `supabase/`. When configured, the screens read the persisted catalogue through typed adapters. Thirteen illustrative EV variants across eleven UK-market brands and five explicitly marked demo charging locations are included. This is not a complete vehicle database. Prices/availability are not live.
+All 17 core tables plus an external-source snapshot table, RLS policies, constraints and development seeds are defined under `supabase/`. When configured, the screens read the persisted catalogue through typed adapters. Thirteen illustrative EV variants across eleven UK-market brands and five explicitly marked demo charging locations are included. This is not a complete vehicle database. Demo prices/availability are not live.
 
 See [database setup and security documentation](docs/database.md) for migrations, seeding, type generation, units, ownership rules, fallback behaviour and integration boundaries. No hosted database is modified automatically.
 
 See [authentication and My Cars setup](docs/authentication.md) for email/password, magic links, cookie sessions, email templates and the hosted smoke-test checklist.
+
+## Charging-data providers
+
+`ChargingDataProvider` exposes bounded/nearby locations, individual locations, operators, statuses and tariffs. `MockChargingProvider`, server-only `OpenChargeMapProvider` and RLS-scoped `StoredChargingProvider` return ChargeOnce domain objects; raw OCM fields never reach React. An `OCPIProvider` contract prepares future direct feeds. Vehicles use a separate `VehicleService`.
+
+Set server-only `OPEN_CHARGE_MAP_API_KEY` to enable OCM in default `CHARGING_DATA_PROVIDER=auto` mode. No key means Supabase/local demo fallback. `mock` forces seeds; `database` reads imported snapshots without upstream page-load requests. Errors fall back to an explicitly demo batch, never invented live prices or availability. OCM operational status and free-text prices are not treated as real-time occupancy or structured tariffs. Cards distinguish demo, external/live, unknown and stale data.
+
+Optional ingestion uses server-only `SUPABASE_SERVICE_ROLE_KEY` and a random `CHARGING_INGESTION_SECRET` (32+ characters). Apply the new migration, then run `pnpm charging:import 51.5 51.65 -0.95 -0.65` against the app origin in `CHARGEONCE_SITE_URL` (local default: localhost). Imports atomically upsert public regional snapshots; page loads never import nationwide data. The protected POST endpoint is ready for a future scheduler, but no job is enabled automatically.
+
+To add a provider, implement the interface, normalise into internal models with honest nulls/provenance, register the server adapter and add contract tests—no vendor-specific UI changes. See [provider architecture, environment variables, fallback, ingestion and extension guide](docs/charging-providers.md).
 
 ## Quality checks
 
@@ -33,7 +43,7 @@ pnpm build
 ## What works
 
 - Home: pick a demo car and see best, cheapest and fastest recommendations.
-- Find a charger: search, filter and sort compatible demo chargers; compare estimated cost, time and status.
+- Find a charger: search, filter and sort compatible demo/external regional records, with explicit source confidence; costs require a current structured tariff.
 - Plan a journey: try example UK routes, change starting battery and view a reserve-aware stop estimate.
 - Charging calculator: consumer-first cost, approximate time, range added, cost per 100 miles and an 80% alternative; configurable losses, explicit SOC curves/fallbacks and a band-by-band breakdown.
 - My cars: authenticated multi-car garage with add/remove, nicknames, default/current selection and optional efficiency overrides. Manufacturer/model/variant selection previews specifications before saving.
@@ -49,9 +59,9 @@ pnpm build
 - `src/domain`: vehicle/charger types.
 - `src/data`: clearly labelled seed/demo records.
 - `src/lib`: calculations and formatting.
-- `src/providers`: data-provider boundary for a future licensed live feed.
+- `src/providers`: provider-neutral charging adapters, bounded snapshot ingestion and vehicle/account repositories.
 - `src/config`: application identity, locale and feature flags.
 - `src/components`: reusable UI and interactive features.
 - `src/app`: App Router pages and metadata.
 
-The app is Vercel-compatible. Supabase is optional for demo use; Mapbox and live-data provider placeholders are documented in `.env.example`. Before representing results as live, integrate a properly licensed and maintained charging-location/availability/tariff source, geocoding and real route geometry, current vehicle data, freshness timestamps and robust coverage/accuracy testing. Live accounts require a dedicated configured Supabase project and production email delivery. Do not expose server-side API keys through `NEXT_PUBLIC_` variables.
+The app is Vercel-compatible. Supabase is optional for demo use; provider configuration is in `.env.example`. Before selling a live directory, verify source licensing/coverage and add maintained real-time availability/tariff feeds, geocoding and real route geometry. OCM external data alone is not live stall availability or verified pricing. Live accounts require a dedicated configured Supabase project and production email delivery. Never expose server-side API keys through `NEXT_PUBLIC_` variables.

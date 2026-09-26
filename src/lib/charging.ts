@@ -6,6 +6,7 @@ import type {
   ChargingMode,
 } from "../domain/charging";
 import { calculateChargingQuote } from "./charging-engine";
+import { dataState } from "../domain/charging-data";
 
 export function isCompatible(vehicle: Vehicle, charger: Charger): boolean {
   return (
@@ -38,12 +39,40 @@ export function calculationVehicle(vehicle: Vehicle): CalculationVehicle {
   };
 }
 export function calculationCharger(charger: Charger): CalculationCharger {
+  if (!hasUsableTariff(charger))
+    throw new Error(
+      "A current structured GBP tariff is unavailable for this charger.",
+    );
   return {
     powerKw: charger.maxKw,
     mode: charger.connector === "Type 2" ? "ac" : "dc",
-    pricePerKwhPounds: charger.pricePencePerKwh / 100,
-    connectionFeePounds: charger.connectionFeePence / 100,
+    pricePerKwhPounds: charger.pricePencePerKwh! / 100,
+    connectionFeePounds: charger.connectionFeePence! / 100,
   };
+}
+export function hasUsableTariff(charger: Charger) {
+  const state = charger.tariffProvenance
+    ? dataState(charger.tariffProvenance)
+    : charger.isDemo
+      ? "demo"
+      : "unknown";
+  return (
+    ["demo", "external", "live"].includes(state) &&
+    charger.pricePencePerKwh !== null &&
+    Number.isFinite(charger.pricePencePerKwh) &&
+    charger.pricePencePerKwh >= 0 &&
+    charger.connectionFeePence !== null &&
+    Number.isFinite(charger.connectionFeePence) &&
+    charger.connectionFeePence >= 0
+  );
+}
+export function hasCurrentAvailability(charger: Charger) {
+  const state = charger.availabilityProvenance
+    ? dataState(charger.availabilityProvenance)
+    : charger.isDemo
+      ? "demo"
+      : "unknown";
+  return ["demo", "external", "live"].includes(state);
 }
 
 export function estimateCharge(
@@ -107,11 +136,15 @@ export function approximateMiles(amount: number) {
 }
 
 export function recommendedChargers(vehicle: Vehicle, options: Charger[]) {
-  const compatible = options.filter((charger) =>
-    isCompatible(vehicle, charger),
+  const compatible = options.filter(
+    (charger) =>
+      isCompatible(vehicle, charger) &&
+      hasUsableTariff(charger) &&
+      !(hasCurrentAvailability(charger) && charger.status === "Unavailable"),
   );
   const available = compatible.filter(
-    (charger) => charger.status === "Available",
+    (charger) =>
+      hasCurrentAvailability(charger) && charger.status === "Available",
   );
   const pool = available.length ? available : compatible;
   return {
@@ -136,9 +169,9 @@ export function recommendedChargers(vehicle: Vehicle, options: Charger[]) {
 function score(charger: Charger, vehicle: Vehicle) {
   const estimate = estimateCharge(vehicle, charger);
   return (
-    charger.reliabilityPercent * 0.45 -
+    (charger.reliabilityPercent ?? 0) * 0.45 -
     estimate.costToTarget * 0.35 -
     estimate.timeToTargetMinutes * 0.16 -
-    charger.distanceMiles * 0.5
+    (charger.distanceMiles ?? 0) * 0.5
   );
 }

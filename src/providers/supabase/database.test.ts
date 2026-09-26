@@ -6,6 +6,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { projectDemoCatalogue } from "./catalogue";
 import { createSupabaseDataProvider } from "./charging-data";
 import type { Database, Row } from "../../lib/supabase/database.types";
+import { normaliseOpenChargeMap } from "../charging/open-charge-map/normalise";
+import { examplePoint } from "../charging/open-charge-map/fixtures";
 
 // Runs the actual migrations in PostgreSQL/WASM. Minimal auth fixtures substitute for GoTrue.
 const db = new PGlite();
@@ -49,6 +51,7 @@ beforeAll(async () => {
   await db.exec(`
     create role anon nologin;
     create role authenticated nologin;
+    create role service_role nologin bypassrls;
     create schema auth;
     create table auth.users(id uuid primary key, raw_user_meta_data jsonb not null default '{}');
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
@@ -94,11 +97,142 @@ afterAll(async () => {
 });
 
 describe("Supabase migrations and data contract", () => {
-  it("creates all 17 tables with RLS and seeds idempotently", async () => {
+  it("imports normalised external locations atomically and idempotently without fabricating tariffs or EVSEs", async () => {
+    const site = normaliseOpenChargeMap(
+      examplePoint,
+      new Date().toISOString(),
+    )!;
+    const apply = () =>
+      db.query<{ count: number }>(
+        "select public.import_charging_sites($1,$2::jsonb) as count",
+        [site.provider, JSON.stringify([site])],
+      );
+    await db.exec("set role service_role");
+    try {
+      expect((await apply()).rows[0].count).toBe(1);
+      expect((await apply()).rows[0].count).toBe(1);
+    } finally {
+      await db.exec("reset role");
+    }
+    expect(await rows("charging_source_snapshots")).toHaveLength(1);
+    const stored = (await rows("charging_source_snapshots"))[0];
+    expect(stored.snapshot).toMatchObject({
+      id: site.id,
+      status: { status: "unknown" },
+      tariff: { pricePerKwh: null },
+    });
+    expect(
+      (await rows("charging_locations")).filter(
+        (l) => l.provider === "openchargemap",
+      ),
+    ).toHaveLength(1);
+    expect(
+      (await rows("evses")).some((e) => e.location_id === stored.location_id),
+    ).toBe(false);
+    expect(
+      (await rows("tariffs")).some((t) => t.location_id === stored.location_id),
+    ).toBe(false);
+    const bad = {
+      ...site,
+      id: "openchargemap:99999",
+      externalId: "99999",
+      latitude: 200,
+    };
+    const preceding = {
+      ...site,
+      id: "openchargemap:99998",
+      externalId: "99998",
+    };
+    await expect(
+      db.query("select public.import_charging_sites($1,$2::jsonb)", [
+        site.provider,
+        JSON.stringify([preceding, bad]),
+      ]),
+    ).rejects.toThrow();
+    expect(
+      (await rows("charging_locations")).some((l) => l.external_id === "99998"),
+    ).toBe(false);
+    await expect(
+      db.query("select public.import_charging_sites('mock',$1::jsonb)", [
+        JSON.stringify([site]),
+      ]),
+    ).rejects.toThrow();
+  });
+  it("rejects normal-user ingestion writes and only reveals public snapshots through RLS", async () => {
+    const site = normaliseOpenChargeMap(
+      examplePoint,
+      new Date().toISOString(),
+    )!;
+    for (const role of ["anon", "authenticated"] as const) {
+      await asRole(role, role === "authenticated" ? alice : null, async () => {
+        await expect(
+          db.query("select public.import_charging_sites($1,$2::jsonb)", [
+            site.provider,
+            JSON.stringify([site]),
+          ]),
+        ).rejects.toThrow();
+        await expect(
+          db.query("delete from public.charging_source_snapshots"),
+        ).rejects.toThrow();
+        expect(
+          (await rows("charging_source_snapshots")).some(
+            (row) => row.external_id === "12345",
+          ),
+        ).toBe(true);
+      });
+    }
+    await db.query(
+      "insert into public.charging_source_snapshots(location_id,provider,external_id,latitude,longitude,snapshot,fetched_at) values ($1,'test','private',51,0,$2::jsonb,now())",
+      [
+        privateLocation,
+        JSON.stringify({ ...site, provider: "test", externalId: "private" }),
+      ],
+    );
+    expect(
+      await asRole("anon", null, () => rows("charging_source_snapshots")),
+    ).not.toContainEqual(
+      expect.objectContaining({ location_id: privateLocation }),
+    );
+  });
+  it("does not regress newer imported snapshots or delete locations on empty imports", async () => {
+    const site = normaliseOpenChargeMap(
+      {
+        ...examplePoint,
+        AddressInfo: {
+          ...examplePoint.AddressInfo,
+          Title: "Latest location name",
+        },
+      },
+      new Date().toISOString(),
+    )!;
+    await db.query("select public.import_charging_sites($1,$2::jsonb)", [
+      site.provider,
+      JSON.stringify([site]),
+    ]);
+    const older = {
+      ...site,
+      name: "Old name",
+      provenance: { ...site.provenance, fetchedAt: "2020-01-01T00:00:00Z" },
+    };
+    const old = await db.query<{ count: number }>(
+      "select public.import_charging_sites($1,$2::jsonb) as count",
+      [site.provider, JSON.stringify([older])],
+    );
+    expect(old.rows[0].count).toBe(0);
+    await db.query("select public.import_charging_sites($1,'[]'::jsonb)", [
+      site.provider,
+    ]);
+    expect(
+      (await rows("charging_locations")).find(
+        (l) => l.provider === site.provider,
+      )?.name,
+    ).toBe("Latest location name");
+  });
+  it("creates all 18 tables with RLS and seeds idempotently", async () => {
     const result = await db.query<{ count: number }>(
       "select count(*)::int as count from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and c.relrowsecurity",
     );
-    expect(result.rows[0].count).toBe(17);
+    expect(result.rows[0].count).toBe(18);
     await db.exec(seed);
     expect(await rows("vehicles")).toHaveLength(13);
     expect(await rows("tariffs")).toHaveLength(5);
@@ -177,7 +311,9 @@ describe("Supabase migrations and data contract", () => {
   });
   it("allows anonymous catalogue reads but hides private locations, EVSEs and all user data", async () => {
     await asRole("anon", null, async () => {
-      expect(await rows("charging_locations")).toHaveLength(5);
+      expect(
+        (await rows("charging_locations")).filter((row) => row.is_demo),
+      ).toHaveLength(5);
       expect(
         (await rows("evses")).every(
           (evse) => evse.location_id !== privateLocation,
