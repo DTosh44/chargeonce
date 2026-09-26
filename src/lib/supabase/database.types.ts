@@ -239,6 +239,10 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      remove_user_vehicle: {
+        Args: { p_user_vehicle_id: string };
+        Returns: undefined;
+      };
       set_default_user_vehicle: {
         Args: { p_user_vehicle_id: string };
         Returns: undefined;

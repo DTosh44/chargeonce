@@ -69,6 +69,42 @@ export const vehicles: Vehicle[] = [
     imageTone: "mint",
     isDemo: true,
   },
+  ...(
+    [
+      [6, "BMW", "i4", "eDrive40 · 2024", 81, 205, 11, 3.7],
+      [7, "Audi", "Q4 e-tron", "45 · 2024", 77, 175, 11, 3.5],
+      [8, "MG", "MG4", "SE Long Range · 2024", 61.7, 135, 7, 4],
+      [9, "Polestar", "2", "Long Range Single Motor · 2024", 79, 205, 11, 3.8],
+      [10, "Volvo", "EX30", "Extended Range · 2024", 64, 153, 11, 3.8],
+      [11, "Skoda", "Enyaq", "85 · 2024", 77, 135, 11, 3.7],
+      [12, "Tesla", "Model Y", "Long Range AWD · 2024", 75, 250, 11, 3.6],
+      [13, "MG", "MG4", "SE Standard Range · 2024", 50.8, 117, 6.6, 4],
+    ] as const
+  ).map(
+    ([
+      number,
+      make,
+      model,
+      trim,
+      batteryKwh,
+      maxDcKw,
+      maxAcKw,
+      efficiency,
+    ]): Vehicle => ({
+      id: `10000000-0000-4000-8000-${String(number).padStart(12, "0")}`,
+      make,
+      model,
+      trim,
+      batteryKwh,
+      maxDcKw,
+      maxAcKw,
+      estimatedRangeMiles: Math.round(batteryKwh * efficiency * 10) / 10,
+      efficiencyMilesPerKwh: efficiency,
+      connectors: ["CCS", "Type 2"],
+      imageTone: "blue",
+      isDemo: true,
+    }),
+  ),
 ];
 
 export const chargers: Charger[] = [

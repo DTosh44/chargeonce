@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowUpRight, Menu, Zap } from "lucide-react";
+import { useVehicle } from "@/components/vehicle-context";
 
 const links = [
   { href: "/map", label: "Find a charger" },
@@ -13,6 +14,11 @@ const links = [
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const { auth } = useVehicle();
+  const accountLink =
+    auth.status === "authenticated"
+      ? { href: "/account", label: "Account" }
+      : { href: "/sign-in", label: "Sign in" };
   return (
     <header className="site-header">
       <div className="shell header-inner">
@@ -47,15 +53,15 @@ export function SiteHeader() {
         >
           My cars
         </Link>
-        <Link href="/account" className="header-signin">
-          Sign in <ArrowUpRight size={16} aria-hidden="true" />
+        <Link href={accountLink.href} className="header-signin">
+          {accountLink.label} <ArrowUpRight size={16} aria-hidden="true" />
         </Link>
         <details className="mobile-nav">
           <summary aria-label="Open menu">
             <Menu size={23} aria-hidden="true" />
           </summary>
           <nav aria-label="Mobile navigation">
-            {[...links, { href: "/account", label: "Sign in" }].map((link) => (
+            {[...links, accountLink].map((link) => (
               <Link
                 key={link.href}
                 href={link.href}

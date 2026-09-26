@@ -13,7 +13,7 @@ pnpm db:start
 pnpm db:reset
 ```
 
-**`db:reset` deletes and rebuilds only your local Supabase development database.** It applies the three migrations and loads `supabase/seed.sql`. Do not use it for a database whose contents you need to preserve. The seeds create no auth users, passwords or private user records.
+**`db:reset` deletes and rebuilds only your local Supabase development database.** It applies all migrations and loads `supabase/seed.sql`. Do not use it for a database whose contents you need to preserve. The seeds create no auth users, passwords or private user records.
 
 Copy `.env.example` to `.env.local`, then use the local project's URL and public key shown by `supabase status`:
 
@@ -64,7 +64,7 @@ All tables have RLS enabled. Foreign keys and indexes cover ownership, location 
 - Profiles are created automatically from Supabase Auth. Every user's profile, garage, favourites, journeys and journey stops is isolated by their authenticated identity. Client-supplied user IDs cannot grant access.
 - Reports are private to their author; browser submissions require authentication. Nullable user IDs support trusted ingestion and account-deletion unlinking, **not anonymous public writes**. Comments are length-limited; moderation/rate limits are needed before exposing report submission UI.
 - Account deletion cascades profiles, garage, favourites and journeys/stops. Provisioned private community locations and their child records are removed too. Reports retain only operational information: user links and free-text comments are removed. Historical journey stops restrict deletion of referenced catalogue locations. Vehicle and operator deletion is restricted while referenced.
-- A partial unique index permits **at most one default car per user**. `set_default_user_vehicle` switches the default in one transaction, serialised per user and protected by RLS. It rejects cars outside that user's garage. New garages can have no default until a car is chosen; deleting a default does not arbitrarily pick another one.
+- A partial unique index permits **at most one default car per user**. `set_default_user_vehicle` switches the default in one transaction, serialised per user and protected by RLS. It rejects cars outside that user's garage. The first inserted car becomes current; `remove_user_vehicle` atomically promotes the oldest remaining car when the current car is removed. Multiple cars may reference the same catalogue model.
 - EVSE insert/status updates automatically append immutable history. Historical retention/pruning should be established before high-volume live ingestion.
 - Community tables are prepared, not exposed in the UI. Users can only read their own provisioned records; browser writes are disabled. Trusted provisioning must create a private community location first. No booking, payment, roaming or charging-session feature is enabled.
 
@@ -78,7 +78,7 @@ All tables have RLS enabled. Foreign keys and indexes cover ownership, location 
 
 No service-role/admin key is used by the app. Catalogue reads use a public key and RLS. Configuration rejects secret keys and legacy service-role JWTs. Session clients are `server-only`, use cookie-scoped credentials and RLS, and have no global user-data cache. Private operations explicitly fail when Supabase/authentication is unavailable—**they never silently pretend to save locally**.
 
-The demo vehicle selection remains local-browser state while account/sign-in features are disabled. Wiring sign-in, saved garage/favourites and journey management into the UI is a separate task; when enabling auth, add the Supabase SSR token-refresh Proxy and callback handlers before release. Do not use a public catalogue client to perform private writes.
+Authentication and the saved garage are now implemented, with SSR token-refresh Proxy and callback/confirmation handlers. Anonymous demo vehicle selection remains local-browser state; authenticated users' current cars persist in the database. See [authentication setup](authentication.md) to enable accounts. Saved favourites and journey-management UI remain separate follow-up work. Do not use a public catalogue client to perform private writes.
 
 ## Verification
 

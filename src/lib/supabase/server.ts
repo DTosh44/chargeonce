@@ -14,6 +14,7 @@ export function createCatalogueClient() {
   const config = configuration();
   if (config.status !== "configured") return null;
   return createClient<Database>(config.url, config.publishableKey, {
+    db: { timeout: 8000, retry: false },
     auth: {
       persistSession: false,
       autoRefreshToken: false,
@@ -25,12 +26,28 @@ export function createCatalogueClient() {
   });
 }
 
-/** Prepared for server actions/routes once sign-in is enabled. User JWT + RLS, never admin. */
+/** Request-scoped server actions/routes client. User JWT + RLS, never admin. */
 export async function createSessionClient() {
   const config = configuration();
   if (config.status !== "configured") return null;
   const cookieStore = await cookies();
   return createServerClient<Database>(config.url, config.publishableKey, {
+    cookieOptions: {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    },
+    db: { timeout: 8000, retry: false },
+    global: {
+      fetch: (input, init) =>
+        fetch(input, {
+          ...init,
+          signal: init?.signal
+            ? AbortSignal.any([init.signal, AbortSignal.timeout(8000)])
+            : AbortSignal.timeout(8000),
+          cache: "no-store",
+        }),
+    },
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll: (values) => {

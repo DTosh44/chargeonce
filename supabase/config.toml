@@ -23,5 +23,18 @@ port = 54323
 [auth]
 enabled = true
 site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3000"]
+additional_redirect_urls = ["http://localhost:3000/auth/callback", "http://localhost:3000/auth/callback?next=**", "http://localhost:3000/auth/confirm"]
 enable_signup = true
+minimum_password_length = 10
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+
+[auth.email.template.confirmation]
+subject = "Confirm your ChargeOnce account"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.magic_link]
+subject = "Your ChargeOnce sign-in link"
+content_path = "./supabase/templates/magic-link.html"

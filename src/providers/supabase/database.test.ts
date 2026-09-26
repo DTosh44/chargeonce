@@ -100,7 +100,7 @@ describe("Supabase migrations and data contract", () => {
     );
     expect(result.rows[0].count).toBe(17);
     await db.exec(seed);
-    expect(await rows("vehicles")).toHaveLength(5);
+    expect(await rows("vehicles")).toHaveLength(13);
     expect(await rows("tariffs")).toHaveLength(5);
     expect(await rows("facilities")).toHaveLength(8);
     expect((await rows("tariffs")).every((row) => row.is_demo)).toBe(true);
@@ -114,7 +114,7 @@ describe("Supabase migrations and data contract", () => {
       operators: await rows("operators"),
       tariffs: await rows("tariffs"),
     });
-    expect(catalogue.vehicles).toHaveLength(5);
+    expect(catalogue.vehicles).toHaveLength(13);
     expect(catalogue.chargers).toHaveLength(5);
     expect(
       catalogue.chargers.find((charger) => charger.id === "alpha"),
@@ -171,7 +171,7 @@ describe("Supabase migrations and data contract", () => {
     );
     const catalogue = await createSupabaseDataProvider(client).loadCatalogue();
     expect(catalogue.source).toBe("supabase-demo");
-    expect(catalogue.vehicles).toHaveLength(5);
+    expect(catalogue.vehicles).toHaveLength(13);
     expect(catalogue.chargers).toHaveLength(5);
     expect(new Set(requested).size).toBe(6);
   });
@@ -228,6 +228,69 @@ describe("Supabase migrations and data contract", () => {
           .map((row) => row.id),
       ).toEqual([garageB]);
     });
+  });
+  it("makes the first saved car current, supports duplicate models, and promotes a car on removal", async () => {
+    const first = "70000000-0000-4000-8000-000000000003";
+    const second = "70000000-0000-4000-8000-000000000004";
+    await asRole("authenticated", bob, async () => {
+      await db.query(
+        "insert into public.user_vehicles(id,user_id,vehicle_id,nickname) values ($1,$2,$3,'Work car'),($4,$2,$3,'Family car')",
+        [first, bob, vehicle, second],
+      );
+      expect(
+        (await rows("user_vehicles")).find((car) => car.id === first)
+          ?.is_default,
+      ).toBe(true);
+      expect(await rows("user_vehicles")).toHaveLength(2);
+      await db.query(
+        "update public.user_vehicles set nickname='Weekend car',efficiency_override=3.2 where id=$1",
+        [second],
+      );
+      expect(
+        (await rows("user_vehicles")).find((car) => car.id === second),
+      ).toMatchObject({ nickname: "Weekend car", efficiency_override: 3.2 });
+      await expect(
+        db.query(
+          "update public.user_vehicles set efficiency_override=11 where id=$1",
+          [second],
+        ),
+      ).rejects.toThrow();
+      await expect(
+        db.query("select public.remove_user_vehicle($1)", [garageA]),
+      ).rejects.toThrow();
+      await db.query("select public.remove_user_vehicle($1)", [first]);
+      expect(await rows("user_vehicles")).toMatchObject([
+        { id: second, is_default: true },
+      ]);
+      await db.query("select public.remove_user_vehicle($1)", [second]);
+      expect(await rows("user_vehicles")).toHaveLength(0);
+      await expect(
+        db.query("select public.remove_user_vehicle($1)", [second]),
+      ).rejects.toThrow();
+    });
+    await asRole("anon", null, async () => {
+      await expect(
+        db.query("select public.remove_user_vehicle($1)", [garageA]),
+      ).rejects.toThrow();
+    });
+  });
+  it("keeps database and bundled starter vehicle identifiers/specifications aligned", async () => {
+    const { seededVehicleModels } = await import("../vehicle-service");
+    const persisted = await rows("vehicles");
+    for (const model of seededVehicleModels) {
+      const row = persisted.find((row) => row.id === model.id)!;
+      expect(row.manufacturer).toBe(model.manufacturer);
+      expect(row.model).toBe(model.model);
+      expect(row.variant).toBe(model.variant);
+      expect(row.usable_battery_kwh).toBe(model.usableBatteryKwh);
+      expect(row.max_dc_kw).toBe(model.maxDcKw);
+      expect(row.max_ac_kw).toBe(model.maxAcKw);
+      expect(row.estimated_range_miles).toBe(model.estimatedRangeMiles);
+      expect(row.efficiency_miles_per_kwh).toBeCloseTo(
+        model.efficiencyMilesPerKwh,
+        2,
+      );
+    }
   });
   it("protects journey stops through the parent journey and blocks owner reassignment", async () => {
     await asRole("authenticated", bob, async () => {

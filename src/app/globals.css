@@ -1,5 +1,107 @@
 @import "tailwindcss";
 
+/* Account and garage additions; existing public-page design is unchanged. */
+.auth-panel {
+  max-width: 520px;
+  padding: 30px;
+}
+.auth-panel .tabs {
+  margin-bottom: 22px;
+}
+.auth-panel > p {
+  margin: 18px 0;
+}
+.auth-panel > .notice {
+  margin-top: 0;
+  margin-bottom: 18px;
+}
+.auth-panel > a {
+  display: inline-block;
+  margin-top: 8px;
+}
+.stack-form,
+.form-fields {
+  display: grid;
+  gap: 18px;
+}
+.form-fields {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.form-fields small {
+  font-weight: 400;
+}
+.form-feedback {
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+.form-feedback.error {
+  background: #fff1ef;
+  color: #922e24;
+}
+.form-feedback.success {
+  background: #eaf8ef;
+  color: #23603c;
+}
+.garage-layout {
+  margin-top: 25px;
+  align-items: start;
+}
+.garage-list {
+  display: grid;
+  gap: 18px;
+}
+.garage-panel {
+  padding: 26px;
+}
+.garage-panel > p {
+  margin: 12px 0 20px;
+}
+.garage-panel h3 {
+  margin: 0;
+}
+.garage-panel hr {
+  border: 0;
+  border-top: 1px solid #e2e8f0;
+  margin: 25px 0;
+}
+.garage-car-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.garage-car-heading p {
+  margin: 5px 0 0;
+  font-size: 13px;
+}
+.saved-car.selected {
+  border-color: #1568e8;
+}
+.advanced-options {
+  margin: 18px 0 0;
+}
+.advanced-options summary {
+  cursor: pointer;
+  margin-bottom: 14px;
+  font-weight: 600;
+}
+.advanced-options .field-label {
+  margin: 14px 0;
+}
+fieldset:disabled {
+  opacity: 0.65;
+}
+@media (max-width: 650px) {
+  .auth-panel,
+  .garage-panel {
+    padding: 20px;
+  }
+}
+
 :root {
   --navy: #10213d;
   --muted: #62718a;

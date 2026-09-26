@@ -1,73 +1,55 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  ArrowRight,
-  BookmarkCheck,
-  CarFront,
-  LockKeyhole,
-  Sparkles,
-} from "lucide-react";
+import { requireAccount } from "@/lib/auth.server";
+import { createSessionClient } from "@/lib/supabase/server";
+import { createUserDataRepository } from "@/providers/supabase/user-data";
+import { SignOutForm } from "@/components/auth-forms";
+import { ProfileForm } from "@/components/profile-form";
 import { Card, PageHeader, buttonStyles } from "@/components/ui";
-
+import type { Profile } from "@/domain/models";
 export const metadata: Metadata = {
   title: "Account",
-  description: "Learn about future ChargeOnce account features.",
+  robots: { index: false, follow: false },
 };
-
-export default function AccountPage() {
+export default async function AccountPage() {
+  const user = await requireAccount("/account");
+  let profile: Profile | null = null;
+  try {
+    profile = await createUserDataRepository(
+      await createSessionClient(),
+    ).getProfile();
+  } catch {
+    /* Render a recoverable error, never fabricated profile data. */
+  }
   return (
     <div className="shell page-section">
       <PageHeader
         eyebrow="Your account"
-        title="Your journeys, all in one place."
-        description="ChargeOnce works without an account today. A secure account experience is planned for a future release."
+        title="Your EV life, in one place."
+        description="Manage your profile and saved cars."
       />
       <div className="account-grid">
-        <Card className="account-panel">
-          <span className="eyebrow">Coming later</span>
-          <h2 style={{ marginTop: 17 }}>A smarter home for your EV life.</h2>
-          <p>
-            We’re not collecting sign-in details in this preview. You can still
-            choose a car, compare demo chargers and run estimates now.
-          </p>
-          <div className="coming-soon">
-            <LockKeyhole size={19} aria-hidden="true" />
-            <span>
-              Sign-in and saved accounts are not enabled yet. No password or
-              personal information is requested on this page.
-            </span>
-          </div>
-          <Link
-            href="/map"
-            className={buttonStyles()}
-            style={{ marginTop: 22 }}
-          >
-            Explore without signing in{" "}
-            <ArrowRight size={16} aria-hidden="true" />
-          </Link>
+        <Card className="garage-panel">
+          <h2>Account details</h2>
+          <p>Signed in as {user.email ?? "your ChargeOnce account"}.</p>
+          {profile ? (
+            <ProfileForm profile={profile} />
+          ) : (
+            <p className="form-feedback error" role="alert">
+              Your profile couldn’t be loaded. Please refresh to try again.
+            </p>
+          )}
         </Card>
-        <Card className="account-info">
-          <h3>What an account will unlock</h3>
-          <ul>
-            <li>
-              <CarFront size={20} aria-hidden="true" />
-              <span>
-                Save multiple vehicles and switch between them quickly.
-              </span>
-            </li>
-            <li>
-              <BookmarkCheck size={20} aria-hidden="true" />
-              <span>Keep favourite chargers and recent journey plans.</span>
-            </li>
-            <li>
-              <Sparkles size={20} aria-hidden="true" />
-              <span>Get personalised recommendations wherever you go.</span>
-            </li>
-          </ul>
-          <p className="section-copy" style={{ fontSize: 12 }}>
-            The current demo remembers your selected vehicle only in this
-            browser’s local storage.
+        <Card className="garage-panel">
+          <h2>Your garage</h2>
+          <p>
+            Save multiple EVs and keep one current car in sync across devices.
           </p>
+          <Link className={buttonStyles()} href="/cars">
+            Manage My Cars
+          </Link>
+          <hr />
+          <SignOutForm />
         </Card>
       </div>
     </div>

@@ -85,13 +85,27 @@ export function createUserDataRepository(
       return mapUserVehicle(data);
     },
     async removeVehicle(id) {
-      const { db, userId } = await session();
-      const { error } = await db
-        .from("user_vehicles")
-        .delete()
-        .eq("id", id)
-        .eq("user_id", userId);
+      const { db } = await session();
+      const { error } = await db.rpc("remove_user_vehicle", {
+        p_user_vehicle_id: id,
+      });
       failure(error);
+    },
+    async updateVehicle(id, input) {
+      const { db, userId } = await session();
+      const { data, error } = await db
+        .from("user_vehicles")
+        .update({
+          nickname: input.nickname,
+          efficiency_override: input.efficiencyOverride,
+        })
+        .eq("id", id)
+        .eq("user_id", userId)
+        .select("*")
+        .single();
+      failure(error);
+      if (!data) throw new Error("The car was not updated");
+      return mapUserVehicle(data);
     },
     async setDefaultVehicle(id) {
       const { db } = await session();

@@ -19,6 +19,25 @@ on conflict(id) do update set manufacturer=excluded.manufacturer, model=excluded
   estimated_range_miles=excluded.estimated_range_miles, charging_curve=excluded.charging_curve,
   source=excluded.source, is_demo=true;
 
+-- Starter UK catalogue, not exhaustive or certified specifications.
+insert into public.vehicles(id, manufacturer, model, variant, model_year,
+  usable_battery_kwh, max_ac_kw, max_dc_kw, connector_types,
+  efficiency_miles_per_kwh, estimated_range_miles, source, is_demo)
+values
+ ('10000000-0000-4000-8000-000000000006', 'BMW', 'i4', 'eDrive40', 2024, 81, 11, 205, '{CCS,"Type 2"}', 3.7, 299.7, 'chargeonce_demo', true),
+ ('10000000-0000-4000-8000-000000000007', 'Audi', 'Q4 e-tron', '45', 2024, 77, 11, 175, '{CCS,"Type 2"}', 3.5, 269.5, 'chargeonce_demo', true),
+ ('10000000-0000-4000-8000-000000000008', 'MG', 'MG4', 'SE Long Range', 2024, 61.7, 7, 135, '{CCS,"Type 2"}', 4, 246.8, 'chargeonce_demo', true),
+ ('10000000-0000-4000-8000-000000000009', 'Polestar', '2', 'Long Range Single Motor', 2024, 79, 11, 205, '{CCS,"Type 2"}', 3.8, 300.2, 'chargeonce_demo', true),
+ ('10000000-0000-4000-8000-000000000010', 'Volvo', 'EX30', 'Extended Range', 2024, 64, 11, 153, '{CCS,"Type 2"}', 3.8, 243.2, 'chargeonce_demo', true),
+ ('10000000-0000-4000-8000-000000000011', 'Skoda', 'Enyaq', '85', 2024, 77, 11, 135, '{CCS,"Type 2"}', 3.7, 284.9, 'chargeonce_demo', true),
+ ('10000000-0000-4000-8000-000000000012', 'Tesla', 'Model Y', 'Long Range AWD', 2024, 75, 11, 250, '{CCS,"Type 2"}', 3.6, 270, 'chargeonce_demo', true),
+ ('10000000-0000-4000-8000-000000000013', 'MG', 'MG4', 'SE Standard Range', 2024, 50.8, 6.6, 117, '{CCS,"Type 2"}', 4, 203.2, 'chargeonce_demo', true)
+on conflict(id) do update set manufacturer=excluded.manufacturer, model=excluded.model,
+  variant=excluded.variant, model_year=excluded.model_year, usable_battery_kwh=excluded.usable_battery_kwh,
+  max_ac_kw=excluded.max_ac_kw, max_dc_kw=excluded.max_dc_kw, connector_types=excluded.connector_types,
+  efficiency_miles_per_kwh=excluded.efficiency_miles_per_kwh, estimated_range_miles=excluded.estimated_range_miles,
+  source=excluded.source, is_demo=true;
+
 insert into public.operators(id, name, slug, website) values
  ('20000000-0000-4000-8000-000000000001', 'GRIDSERVE', 'gridserve', 'https://www.gridserve.com'),
  ('20000000-0000-4000-8000-000000000002', 'bp pulse', 'bp-pulse', 'https://www.bppulse.co.uk'),

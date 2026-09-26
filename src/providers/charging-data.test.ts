@@ -9,7 +9,7 @@ describe("optional persistence", () => {
     const catalogue = await loadCatalogueWithFallback(null);
     expect(catalogue.source).toBe("seeded");
     expect(catalogue.fallbackReason).toBe("missing_configuration");
-    expect(catalogue.vehicles).toHaveLength(5);
+    expect(catalogue.vehicles).toHaveLength(13);
     expect(
       catalogue.chargers.every(
         (charger) => charger.isDemo && charger.name.startsWith("DEMO"),

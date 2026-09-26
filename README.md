@@ -15,9 +15,11 @@ Open http://localhost:3000. No API keys or database are needed: Supabase credent
 
 ## Supabase data architecture
 
-All 17 core tables, RLS policies, constraints and development seeds are defined under `supabase/`. When configured, the existing screens read the persisted demo catalogue through a typed adapter. Five UK demo EVs and five explicitly marked demo charging locations use recognisable network names. Prices/availability are not live.
+All 17 core tables, RLS policies, constraints and development seeds are defined under `supabase/`. When configured, the screens read the persisted catalogue through typed adapters. Thirteen illustrative EV variants across eleven UK-market brands and five explicitly marked demo charging locations are included. This is not a complete vehicle database. Prices/availability are not live.
 
 See [database setup and security documentation](docs/database.md) for migrations, seeding, type generation, units, ownership rules, fallback behaviour and integration boundaries. No hosted database is modified automatically.
+
+See [authentication and My Cars setup](docs/authentication.md) for email/password, magic links, cookie sessions, email templates and the hosted smoke-test checklist.
 
 ## Quality checks
 
@@ -34,8 +36,9 @@ pnpm build
 - Find a charger: search, filter and sort compatible demo chargers; compare estimated cost, time and status.
 - Plan a journey: try example UK routes, change starting battery and view a reserve-aware stop estimate.
 - Charging calculator: change battery level, target, tariff and charger power for live estimates.
-- My cars: choose one of five demo EVs; the choice is retained in local storage and used throughout the app.
-- Account: honest preview of planned functionality; no non-functional sign-in form or credential collection.
+- My cars: authenticated multi-car garage with add/remove, nicknames, default/current selection and optional efficiency overrides. Manufacturer/model/variant selection previews specifications before saving.
+- Account: email/password and magic-link sign-in, confirmed sign-up, profile editing and sign-out. Account forms are disabled when Supabase is not configured.
+- Shared vehicle selector: database current car for signed-in users, local-browser demo selection for anonymous visitors. All charging calculations use that car.
 
 ## Estimate assumptions
 
@@ -51,4 +54,4 @@ pnpm build
 - `src/components`: reusable UI and interactive features.
 - `src/app`: App Router pages and metadata.
 
-The app is Vercel-compatible. Supabase is optional; Mapbox and live-data provider placeholders are documented in `.env.example`. Before representing results as live, integrate a properly licensed and maintained charging-location/availability/tariff source, geocoding and real route geometry, current vehicle data, freshness timestamps and robust coverage/accuracy testing. Account features require wiring the prepared session-scoped repositories into a complete auth flow. Do not expose server-side API keys through `NEXT_PUBLIC_` variables.
+The app is Vercel-compatible. Supabase is optional for demo use; Mapbox and live-data provider placeholders are documented in `.env.example`. Before representing results as live, integrate a properly licensed and maintained charging-location/availability/tariff source, geocoding and real route geometry, current vehicle data, freshness timestamps and robust coverage/accuracy testing. Live accounts require a dedicated configured Supabase project and production email delivery. Do not expose server-side API keys through `NEXT_PUBLIC_` variables.

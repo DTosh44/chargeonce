@@ -41,6 +41,10 @@ export interface UserDataRepository {
   listVehicles(): Promise<UserVehicle[]>;
   addVehicle(input: AddUserVehicleInput): Promise<UserVehicle>;
   removeVehicle(id: UUID): Promise<void>;
+  updateVehicle(
+    id: UUID,
+    input: { nickname: string | null; efficiencyOverride: number | null },
+  ): Promise<UserVehicle>;
   setDefaultVehicle(id: UUID): Promise<void>;
   listFavourites(): Promise<Favourite[]>;
   addFavourite(locationId: UUID): Promise<Favourite>;
