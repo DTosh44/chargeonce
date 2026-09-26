@@ -23,6 +23,24 @@ export function readChargingSnapshot(value: unknown): ChargingSite {
     )
       throw new Error();
     validatePoint(site.latitude, site.longitude);
+    if (site.isCommunity !== undefined && typeof site.isCommunity !== "boolean")
+      throw new Error();
+    const facilities = [
+      "toilets",
+      "cafe",
+      "restaurant",
+      "shop",
+      "wifi",
+      "24_hour",
+      "accessible_toilet",
+      "lighting",
+    ];
+    if (
+      site.facilities != null &&
+      (!Array.isArray(site.facilities) ||
+        site.facilities.some((f) => !facilities.includes(f)))
+    )
+      throw new Error();
     const operator = site.operator;
     if (
       !operator ||

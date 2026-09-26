@@ -49,6 +49,11 @@ export class MockChargingProvider implements ChargingDataProvider {
         longitude: demoCoordinates[index][1],
         accessType: "public",
         isPublic: true,
+        isCommunity: false,
+        facilities:
+          index === 0 || index === 3
+            ? ["toilets", "cafe", "shop", "lighting", "24_hour"]
+            : ["lighting"],
         operator: {
           id: `20000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
           name: charger.network,

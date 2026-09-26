@@ -31,6 +31,18 @@ Optional ingestion uses server-only `SUPABASE_SERVICE_ROLE_KEY` and a random `CH
 
 To add a provider, implement the interface, normalise into internal models with honest nulls/provenance, register the server adapter and add contract tests—no vendor-specific UI changes. See [provider architecture, environment variables, fallback, ingestion and extension guide](docs/charging-providers.md).
 
+## Charger discovery / Mapbox
+
+`/map` has a clustered Mapbox street map and an equivalent keyboard-accessible list. Desktop shows both; mobile has Map/List buttons. Set `NEXT_PUBLIC_MAPBOX_TOKEN` to your own public `pk.` token, URL-restricted to your production domain and local development origin. Rebuild/restart after changing environment variables. Secret `sk.` tokens are rejected before passing configuration to the browser. Mapbox maps and one-off Search Box forward searches are billable services; configure account limits and review its current usage terms. See [Mapbox token security](https://docs.mapbox.com/accounts/guides/tokens/) and [Search Box API](https://docs.mapbox.com/api/search/search-box/).
+
+Search is submitted explicitly, not on every keystroke, and supports UK postcodes, places, addresses and destination POIs. Normalised search results exist only in memory, never our database/local storage. Without a token, the list works and Marlow/SL7 select the demo region; other location searches explain the missing configuration. Browser location is requested only by the location button, with a timeout and a denial fallback; no automatic permission prompt or account persistence. Mapbox receives map/place-search requests; the bounded charger endpoint receives regional coordinates. Use HTTPS in production for geolocation.
+
+Map movements debounce 450ms and cancel superseded requests. `/api/charging/locations` validates regional bounds before invoking the configured provider, returns at most its 200-result cap and never runs ingestion. Bounds larger than 0.6 degrees are not requested: zoomed-out maps cluster already loaded records and explain incomplete coverage. No nationwide load is triggered. API responses are `no-store`; provider-level caching still applies. Consider edge rate limits for your hosting/provider budget before public launch.
+
+Filters operate on compatible published public-access records in the loaded area. Unknown/stale prices, facilities and availability cannot pass their corresponding filters. Community filtering is prepared for publicly published records, not private host discovery or booking. OCM has no verified facility/occupancy/structured price feed here, so those details remain unknown. `ChargingSite.facilities` is optional/null for unverified source records and backwards-compatible stored snapshots. Mock facilities are explicitly illustrative. Cards use the active car, real-world efficiency, 10% losses, a 20–80% battery assumption and SOC curves/fallbacks; time is available even without a price. £/100 miles excludes fixed fees; to-80% cost requires a known connection fee. Parking/idle/subscription fees are excluded and stated. Maximum useful power is capped by the car, not a promise of sustained charging speed. Distances are straight-line from the selected place, not road miles.
+
+Directions open Google Maps externally for real source locations, without optimisation; fictional demo locations cannot offer navigation. A missing/failed Mapbox map never removes the list. Live-token visual/map/search smoke testing is still required on the deployment using your token.
+
 ## Quality checks
 
 ```bash

@@ -1,4 +1,4 @@
-import type { AccessType, EvseStatus } from "./models";
+import type { AccessType, EvseStatus, FacilityCode } from "./models";
 import type { Connector } from "./types";
 
 export interface GeoBounds {
@@ -62,6 +62,9 @@ export interface ChargingSite {
   longitude: number;
   accessType: AccessType;
   isPublic: boolean;
+  /** Optional for older persisted snapshots. Missing facilities are unverified. */
+  isCommunity?: boolean;
+  facilities?: FacilityCode[] | null;
   operator: ChargingOperator;
   connectors: ConnectorSummary[];
   status: LocationStatus;
