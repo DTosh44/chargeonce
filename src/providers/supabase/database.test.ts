@@ -277,11 +277,13 @@ describe("Supabase migrations and data contract", () => {
   it("keeps database and bundled starter vehicle identifiers/specifications aligned", async () => {
     const { seededVehicleModels } = await import("../vehicle-service");
     const persisted = await rows("vehicles");
+    const { mapVehicle } = await import("./mappers");
     for (const model of seededVehicleModels) {
       const row = persisted.find((row) => row.id === model.id)!;
       expect(row.manufacturer).toBe(model.manufacturer);
       expect(row.model).toBe(model.model);
       expect(row.variant).toBe(model.variant);
+      expect(mapVehicle(row).chargingCurve).toEqual(model.chargingCurve);
       expect(row.usable_battery_kwh).toBe(model.usableBatteryKwh);
       expect(row.max_dc_kw).toBe(model.maxDcKw);
       expect(row.max_ac_kw).toBe(model.maxAcKw);

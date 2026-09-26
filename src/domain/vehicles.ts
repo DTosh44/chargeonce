@@ -36,6 +36,9 @@ export function toCalculationVehicle(
     imageTone: "blue",
     isDemo: spec.isDemo,
     efficiencyMilesPerKwh: efficiency,
+    efficiencySource: override == null ? "catalogue" : "personal",
+    chargingCurve: spec.chargingCurve,
+    chargingCurveIssue: spec.chargingCurveIssue,
     estimatedRangeMiles:
       override == null
         ? spec.estimatedRangeMiles

@@ -46,7 +46,7 @@ describe("garage domain and catalogue boundary", () => {
     expect(
       estimateCharge(car, { ...chargers[0], pricePencePerKwh: 60 })
         .costPer100Miles,
-    ).toBeCloseTo(20);
+    ).toBeCloseTo(20 / 0.9);
     expect(
       toCalculationVehicle(seededVehicleModels[0]).estimatedRangeMiles,
     ).toBe(270);

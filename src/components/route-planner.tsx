@@ -13,6 +13,7 @@ import { VehicleSelector, useVehicle } from "@/components/vehicle-context";
 import { Card, Metric, PageHeader, Select } from "@/components/ui";
 import { minutes, pounds, recommendedChargers } from "@/lib/charging";
 import { useState } from "react";
+import { estimateJourneyCharging } from "@/lib/journey-charging";
 
 const routes = [
   {
@@ -50,30 +51,17 @@ export function RoutePlanner() {
   const [routeId, setRouteId] = useState("manchester");
   const [startingCharge, setStartingCharge] = useState(40);
   const route = routes.find((item) => item.id === routeId) ?? routes[0];
-  const usableMiles = Math.max(
-    0,
-    (vehicle.estimatedRangeMiles * (startingCharge - 10)) / 100,
-  );
-  const deficitMiles = Math.max(0, route.miles - usableMiles);
   const stop = recommendedChargers(vehicle, chargers).best;
-  const energyAtStop =
-    (deficitMiles / vehicle.estimatedRangeMiles) * vehicle.batteryKwh;
-  const requiredTopUps = Math.ceil(energyAtStop / (vehicle.batteryKwh * 0.7));
-  const effectiveKw = stop
-    ? Math.min(
-        stop.maxKw,
-        stop.connector === "Type 2" ? vehicle.maxAcKw : vehicle.maxDcKw,
-      )
-    : 0;
-  const stopMinutes =
-    effectiveKw > 0 ? (energyAtStop / (effectiveKw * 0.78)) * 60 : 0;
-  const chargingCost = stop
-    ? (energyAtStop * stop.pricePencePerKwh +
-        requiredTopUps * stop.connectionFeePence) /
-      100
-    : 0;
-  const drivingMinutes = (route.miles / 55) * 60;
-  const needsStop = deficitMiles > 0;
+  const {
+    usableMiles,
+    energyAtStop,
+    requiredTopUps,
+    effectiveKw,
+    stopMinutes,
+    chargingCost,
+    drivingMinutes,
+    needsStop,
+  } = estimateJourneyCharging(vehicle, stop, route.miles, startingCharge);
 
   return (
     <div className="shell page-section">
@@ -158,7 +146,7 @@ export function RoutePlanner() {
               value={
                 needsStop && !stop
                   ? "Unknown"
-                  : minutes(drivingMinutes + stopMinutes)
+                  : minutes(drivingMinutes + (stopMinutes ?? 0))
               }
             />
             <Metric
@@ -167,7 +155,7 @@ export function RoutePlanner() {
                 needsStop && !stop
                   ? "Unknown"
                   : needsStop
-                    ? pounds(chargingCost)
+                    ? pounds(chargingCost ?? 0)
                     : "£0.00"
               }
             />
@@ -196,7 +184,7 @@ export function RoutePlanner() {
                   </p>
                   <strong>
                     <Zap size={13} aria-hidden="true" /> Approx.{" "}
-                    {minutes(stopMinutes)} · {pounds(chargingCost)}
+                    {minutes(stopMinutes ?? 0)} · {pounds(chargingCost ?? 0)}
                   </strong>
                 </div>
               </div>
@@ -207,9 +195,10 @@ export function RoutePlanner() {
                 {needsStop &&
                   !stop &&
                   "No compatible charger is present in this demo catalogue. "}
-                Planning estimate only. Real-world range, traffic, weather,
-                topography, charger access and charging curves can change the
-                result.
+                Planning estimate only, including 10% charging losses and
+                SOC-band charging time. Real-world range, traffic, weather,
+                topography, charger access and battery temperature can change
+                the result.
               </span>
             </div>
           </div>

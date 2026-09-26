@@ -7,7 +7,7 @@ describe("charging estimates", () => {
     expect(
       estimateCharge({ ...vehicles[0], efficiencyMilesPerKwh: 4 }, chargers[0])
         .costPer100Miles,
-    ).toBeCloseTo(17.25);
+    ).toBeCloseTo(17.25 / 0.9);
     expect(
       recommendedChargers({ ...vehicles[0], connectors: ["CHAdeMO"] }, chargers)
         .best,
@@ -16,16 +16,17 @@ describe("charging estimates", () => {
   it("calculates cost and time from the vehicle and charger", () => {
     const result = estimateCharge(vehicles[0], chargers[0]);
     expect(result.energyNeededKwh).toBe(36);
-    expect(result.costToTarget).toBeCloseTo(24.84);
-    expect(result.costPer100Miles).toBeCloseTo(15.33);
+    expect(result.costToTarget).toBeCloseTo(27.6);
+    expect(result.costPer100Miles).toBeCloseTo(17.037, 2);
     expect(result.timeToTargetMinutes).toBeGreaterThan(18);
   });
 
   it("caps power at the vehicle limit and charges no energy for an already reached target", () => {
     expect(estimateCharge(vehicles[0], chargers[3]).effectiveKw).toBe(170);
-    expect(estimateCharge(vehicles[0], chargers[4], 90, 80).costToTarget).toBe(
+    expect(estimateCharge(vehicles[0], chargers[4], 90, 90).costToTarget).toBe(
       0,
     );
+    expect(() => estimateCharge(vehicles[0], chargers[4], 90, 80)).toThrow();
   });
 
   it("uses AC limits for Type 2 and finds distinct recommendation criteria", () => {

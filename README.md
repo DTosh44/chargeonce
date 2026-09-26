@@ -35,14 +35,14 @@ pnpm build
 - Home: pick a demo car and see best, cheapest and fastest recommendations.
 - Find a charger: search, filter and sort compatible demo chargers; compare estimated cost, time and status.
 - Plan a journey: try example UK routes, change starting battery and view a reserve-aware stop estimate.
-- Charging calculator: change battery level, target, tariff and charger power for live estimates.
+- Charging calculator: consumer-first cost, approximate time, range added, cost per 100 miles and an 80% alternative; configurable losses, explicit SOC curves/fallbacks and a band-by-band breakdown.
 - My cars: authenticated multi-car garage with add/remove, nicknames, default/current selection and optional efficiency overrides. Manufacturer/model/variant selection previews specifications before saving.
 - Account: email/password and magic-link sign-in, confirmed sign-up, profile editing and sign-out. Account forms are disabled when Supabase is not configured.
 - Shared vehicle selector: database current car for signed-in users, local-browser demo selection for anonymous visitors. All charging calculations use that car.
 
 ## Estimate assumptions
 
-`src/lib/charging.ts` contains the pure calculation logic and tests. Cost per 100 miles uses vehicle efficiency when supplied, or battery capacity divided by estimated range, multiplied by the tariff; it excludes any fixed connection fee. Cost to target includes energy and a connection fee, when applicable. Charge time uses the lower of the vehicle or charger power, with a simplified 0.78 average-power factor for tapering. This is deliberately approximate; weather, battery temperature, charging curves, traffic and real-world range will affect results. Bundled fallback data is in `src/data/demo.ts`; persistent development records are in `supabase/seed.sql`.
+`src/lib/charging-engine.ts` contains the reusable calculation engine. It uses usable battery capacity, typical real-world efficiency and configurable losses (visible default: 10% of billed energy). Time is integrated over SOC bands, capped by the car and charger, with clearly labelled fallback curves when data is missing or invalid. Costs per 100 miles exclude fixed session fees; non-zero session estimates include any provided connection fee. Calculator headlines are deliberately approximate rather than falsely precise. See [engine formulas, curve JSON contract, assumptions and tests](docs/charging-engine.md). Bundled demo records/curves and persistent seeds remain explicitly illustrative.
 
 ## Architecture and next integrations
 

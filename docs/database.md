@@ -54,7 +54,7 @@ All tables have RLS enabled. Foreign keys and indexes cover ownership, location 
 - Tariff `price_per_kwh`, `connection_fee` and `parking_fee` are **major currency units** (e.g. `0.69 GBP`), never pence. The adapter converts to the existing UI's secondary pence fields.
 - Battery energy is kWh; charger power is kW; range/distance is miles; efficiency is **miles per kWh**; battery percentages are 0–100.
 - Parking fee units are explicitly hourly or per-session. This initial quote projection omits records with parking fees, non-GBP tariffs, missing or expired tariffs; it never substitutes a zero price.
-- Vehicle `charging_curve` stores `{ batteryPercent, powerKw }` points for future curve-aware estimates. The existing simplified taper-based time calculation is preserved. Seed specifications are illustrative, not authoritative vehicle data.
+- Vehicle `charging_curve` stores complete `{ fromSocPercent, toSocPercent, powerKw }` DC SOC-band profiles. The engine integrates bands and caps accepted input power by the car/charger, with configurable losses. Legacy point arrays and malformed/incomplete curves use a labelled fallback. See [charging engine contract](charging-engine.md). Seed specifications and curves are illustrative, not authoritative vehicle data.
 - The demo map's positions, distance and reliability are explicit `demo_metadata`, not calculated geospatial or reliability claims.
 
 ### Public and private access

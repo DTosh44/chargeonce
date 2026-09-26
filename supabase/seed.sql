@@ -38,6 +38,22 @@ on conflict(id) do update set manufacturer=excluded.manufacturer, model=excluded
   efficiency_miles_per_kwh=excluded.efficiency_miles_per_kwh, estimated_range_miles=excluded.estimated_range_miles,
   source=excluded.source, is_demo=true;
 
+-- Synthetic DC SOC bands, not measured charging curves. Other seed cars deliberately
+-- have no curve and demonstrate the explicitly labelled heuristic fallback.
+update public.vehicles v set charging_curve = (
+  select jsonb_agg(jsonb_build_object('fromSocPercent', (p.ordinality-1)*10,
+    'toSocPercent', p.ordinality*10, 'powerKw', p.power) order by p.ordinality)
+  from jsonb_array_elements(profile.powers) with ordinality as p(power, ordinality)
+)
+from (values
+ ('10000000-0000-4000-8000-000000000001'::uuid, '[70,130,170,155,135,110,85,60,35,12]'::jsonb),
+ ('10000000-0000-4000-8000-000000000002'::uuid, '[55,95,120,110,95,80,65,50,30,10]'::jsonb),
+ ('10000000-0000-4000-8000-000000000003'::uuid, '[45,70,100,95,85,75,60,45,28,9]'::jsonb),
+ ('10000000-0000-4000-8000-000000000004'::uuid, '[150,210,240,240,225,210,160,95,55,18]'::jsonb),
+ ('10000000-0000-4000-8000-000000000005'::uuid, '[24,40,50,47,44,40,34,28,20,8]'::jsonb)
+) as profile(id, powers)
+where v.id=profile.id and v.source='chargeonce_demo' and v.is_demo;
+
 insert into public.operators(id, name, slug, website) values
  ('20000000-0000-4000-8000-000000000001', 'GRIDSERVE', 'gridserve', 'https://www.gridserve.com'),
  ('20000000-0000-4000-8000-000000000002', 'bp pulse', 'bp-pulse', 'https://www.bppulse.co.uk'),

@@ -21,7 +21,7 @@ export const seededVehicleModels: VehicleModel[] = vehicles.map((vehicle) => ({
     vehicle.efficiencyMilesPerKwh ??
     vehicle.estimatedRangeMiles / vehicle.batteryKwh,
   estimatedRangeMiles: vehicle.estimatedRangeMiles,
-  chargingCurve: [],
+  chargingCurve: vehicle.chargingCurve ?? [],
   source: "chargeonce_demo",
   isDemo: true,
   createdAt: "2026-09-26T00:00:00Z",

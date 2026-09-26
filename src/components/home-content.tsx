@@ -81,8 +81,9 @@ export function HomeContent() {
         </div>
         <p className="recommendations-note">
           Illustrative locations, tariffs, reliability and availability.
-          Estimates assume a 20–80% charge. Recommendations consider available,
-          compatible demo chargers.
+          Estimates assume a 20–80% charge and include 10% charging losses, with
+          illustrative SOC curves or a generic fallback model. Recommendations
+          consider available, compatible demo chargers.
         </p>
       </section>
       <div className="shell stat-strip">

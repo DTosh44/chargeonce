@@ -1,3 +1,9 @@
+import type {
+  ChargingCurveBand,
+  CurveIssue,
+  ChargingQuote,
+  EfficiencySource,
+} from "./charging";
 export type Connector = "CCS" | "Type 2" | "CHAdeMO";
 export type ChargerStatus = "Available" | "Busy" | "Unknown";
 
@@ -13,6 +19,9 @@ export interface Vehicle {
   connectors: Connector[];
   imageTone: "blue" | "mint" | "violet";
   efficiencyMilesPerKwh?: number;
+  efficiencySource?: EfficiencySource;
+  chargingCurve?: ChargingCurveBand[];
+  chargingCurveIssue?: CurveIssue;
   isDemo?: boolean;
 }
 
@@ -38,6 +47,7 @@ export interface Charger {
 }
 
 export interface ChargingEstimate {
+  details: ChargingQuote;
   costPer100Miles: number;
   costToTarget: number;
   timeToTargetMinutes: number;

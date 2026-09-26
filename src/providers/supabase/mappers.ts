@@ -1,4 +1,5 @@
 import type { Json, Row } from "../../lib/supabase/database.types";
+import { parseChargingCurve } from "../../lib/charging-curves";
 import type {
   ChargingLocation,
   Evse,
@@ -23,18 +24,7 @@ const object = (value: Json) =>
   value && typeof value === "object" && !Array.isArray(value) ? value : {};
 
 export function mapVehicle(row: Row<"vehicles">): VehicleModel {
-  const chargingCurve = Array.isArray(row.charging_curve)
-    ? row.charging_curve.flatMap((value) => {
-        const point = object(value);
-        return typeof point.batteryPercent === "number" &&
-          typeof point.powerKw === "number" &&
-          point.batteryPercent >= 0 &&
-          point.batteryPercent <= 100 &&
-          point.powerKw >= 0
-          ? [{ batteryPercent: point.batteryPercent, powerKw: point.powerKw }]
-          : [];
-      })
-    : [];
+  const curve = parseChargingCurve(row.charging_curve);
   return {
     ...timestamps(row),
     id: row.id,
@@ -49,7 +39,8 @@ export function mapVehicle(row: Row<"vehicles">): VehicleModel {
     connectorTypes: row.connector_types,
     efficiencyMilesPerKwh: row.efficiency_miles_per_kwh,
     estimatedRangeMiles: row.estimated_range_miles,
-    chargingCurve,
+    chargingCurve: curve.bands,
+    chargingCurveIssue: curve.issue ?? undefined,
     source: row.source,
     isDemo: row.is_demo,
   };

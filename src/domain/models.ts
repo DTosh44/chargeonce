@@ -1,5 +1,6 @@
 /** Application models: camelCase, provider-independent, and safe to pass to UI. */
 import type { Connector } from "./types";
+import type { ChargingCurveBand, CurveIssue } from "./charging";
 
 export type UUID = string;
 export type ISODateTime = string;
@@ -35,10 +36,6 @@ export interface Profile extends Timestamps {
   displayName: string;
   postcode: string | null;
 }
-export interface ChargingCurvePoint {
-  batteryPercent: number;
-  powerKw: number;
-}
 export interface VehicleModel extends Timestamps {
   id: UUID;
   manufacturer: string;
@@ -52,7 +49,8 @@ export interface VehicleModel extends Timestamps {
   connectorTypes: Connector[];
   efficiencyMilesPerKwh: number;
   estimatedRangeMiles: number;
-  chargingCurve: ChargingCurvePoint[];
+  chargingCurve: ChargingCurveBand[];
+  chargingCurveIssue?: CurveIssue;
   source: string;
   isDemo: boolean;
 }

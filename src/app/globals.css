@@ -1,5 +1,39 @@
 @import "tailwindcss";
 
+.calculation-small {
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 18px 0;
+  color: #62718a;
+}
+.calculation-energy {
+  margin-top: 22px;
+}
+.calculation-breakdown p {
+  margin: 16px 0;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.calculation-table-wrap {
+  overflow-x: auto;
+}
+.calculation-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.calculation-table caption {
+  text-align: left;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+.calculation-table th,
+.calculation-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
 /* Account and garage additions; existing public-page design is unchanged. */
 .auth-panel {
   max-width: 520px;

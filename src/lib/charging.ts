@@ -1,10 +1,49 @@
 import type { Charger, ChargingEstimate, Vehicle } from "@/domain/types";
 import { siteConfig } from "../config/site";
-
-const TAPER_FACTOR = 0.78;
+import type {
+  CalculationVehicle,
+  CalculationCharger,
+  ChargingMode,
+} from "../domain/charging";
+import { calculateChargingQuote } from "./charging-engine";
 
 export function isCompatible(vehicle: Vehicle, charger: Charger): boolean {
-  return vehicle.connectors.includes(charger.connector);
+  return (
+    vehicle.connectors.includes(charger.connector) &&
+    (charger.connector === "Type 2" ? vehicle.maxAcKw > 0 : vehicle.maxDcKw > 0)
+  );
+}
+
+export function calculationVehicle(vehicle: Vehicle): CalculationVehicle {
+  return {
+    usableBatteryKwh: vehicle.batteryKwh,
+    efficiencyMilesPerKwh:
+      vehicle.efficiencyMilesPerKwh ??
+      vehicle.estimatedRangeMiles / vehicle.batteryKwh,
+    efficiencySource:
+      vehicle.efficiencyMilesPerKwh == null
+        ? "derived"
+        : (vehicle.efficiencySource ?? "catalogue"),
+    maxAcKw: vehicle.maxAcKw,
+    maxDcKw: vehicle.maxDcKw,
+    chargingCurve: vehicle.chargingCurve,
+    chargingCurveIssue: vehicle.chargingCurveIssue,
+    supportedModes: [
+      ...(vehicle.connectors.includes("Type 2") ? ["ac" as ChargingMode] : []),
+      ...(vehicle.connectors.some((connector) => connector !== "Type 2")
+        ? ["dc" as ChargingMode]
+        : []),
+    ],
+    isDemo: vehicle.isDemo,
+  };
+}
+export function calculationCharger(charger: Charger): CalculationCharger {
+  return {
+    powerKw: charger.maxKw,
+    mode: charger.connector === "Type 2" ? "ac" : "dc",
+    pricePerKwhPounds: charger.pricePencePerKwh / 100,
+    connectionFeePounds: charger.connectionFeePence / 100,
+  };
 }
 
 export function estimateCharge(
@@ -12,29 +51,24 @@ export function estimateCharge(
   charger: Charger,
   currentPercent = 20,
   targetPercent = 80,
+  options: { lossPercent?: number } = {},
 ): ChargingEstimate {
-  const current = Math.max(0, Math.min(100, currentPercent));
-  const target = Math.max(current, Math.min(100, targetPercent));
-  const energyNeededKwh = (vehicle.batteryKwh * (target - current)) / 100;
-  const vehicleLimit =
-    charger.connector === "Type 2" ? vehicle.maxAcKw : vehicle.maxDcKw;
-  const effectiveKw = Math.min(vehicleLimit, charger.maxKw);
-  const rate = charger.pricePencePerKwh / 100;
-
+  if (!isCompatible(vehicle, charger))
+    throw new Error("This charger is not compatible with the selected car.");
+  const details = calculateChargingQuote({
+    vehicle: calculationVehicle(vehicle),
+    charger: calculationCharger(charger),
+    currentSocPercent: currentPercent,
+    targetSocPercent: targetPercent,
+    lossPercent: options.lossPercent,
+  });
   return {
-    costPer100Miles:
-      (vehicle.efficiencyMilesPerKwh
-        ? 100 / vehicle.efficiencyMilesPerKwh
-        : (vehicle.batteryKwh / vehicle.estimatedRangeMiles) * 100) * rate,
-    costToTarget:
-      energyNeededKwh * rate +
-      (energyNeededKwh > 0 ? charger.connectionFeePence / 100 : 0),
-    timeToTargetMinutes:
-      effectiveKw > 0
-        ? (energyNeededKwh / (effectiveKw * TAPER_FACTOR)) * 60
-        : 0,
-    effectiveKw,
-    energyNeededKwh,
+    details,
+    costPer100Miles: details.hundredMiles.costPounds,
+    costToTarget: details.session.totalCostPounds,
+    timeToTargetMinutes: details.session.timeMinutes,
+    effectiveKw: details.session.peakPowerKw,
+    energyNeededKwh: details.session.batteryEnergyKwh,
   };
 }
 
@@ -50,6 +84,27 @@ export const minutes = (amount: number) => {
     ? `${Math.floor(rounded / 60)}h ${String(rounded % 60).padStart(2, "0")}m`
     : `${rounded} min`;
 };
+
+/** Round uncertain session estimates, not the underlying calculations. */
+export function approximatePounds(amount: number) {
+  if (amount === 0) return "£0";
+  if (amount < 1) return pounds(Math.max(0.1, Math.round(amount * 10) / 10));
+  return new Intl.NumberFormat(siteConfig.locale, {
+    style: "currency",
+    currency: siteConfig.currency,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+export function approximateMinutes(amount: number) {
+  if (amount === 0) return "No charging needed";
+  if (amount < 1) return "Less than a minute";
+  return `About ${minutes(amount < 5 ? Math.ceil(amount) : Math.round(amount / 5) * 5)}`;
+}
+export function approximateMiles(amount: number) {
+  if (amount === 0) return "0 miles";
+  if (amount < 1) return "Less than 1 mile";
+  return `About ${amount < 5 ? Math.round(amount) : Math.max(5, Math.round(amount / 5) * 5)} miles`;
+}
 
 export function recommendedChargers(vehicle: Vehicle, options: Charger[]) {
   const compatible = options.filter((charger) =>

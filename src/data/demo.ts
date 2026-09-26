@@ -1,7 +1,8 @@
 import type { Charger, Vehicle } from "@/domain/types";
+import { demoChargingCurves } from "./charging-curves";
 
 /** Illustrative demo data, not live prices or availability. */
-export const vehicles: Vehicle[] = [
+const starterVehicles: Vehicle[] = [
   {
     id: "10000000-0000-4000-8000-000000000001",
     make: "Tesla",
@@ -106,6 +107,11 @@ export const vehicles: Vehicle[] = [
     }),
   ),
 ];
+export const vehicles: Vehicle[] = starterVehicles.map((vehicle) => ({
+  ...vehicle,
+  chargingCurve: demoChargingCurves[vehicle.id] ?? [],
+  efficiencySource: "catalogue",
+}));
 
 export const chargers: Charger[] = [
   {

@@ -63,7 +63,13 @@ export function ChargerCard({
       {!compact && (
         <div className="charger-foot">
           <span>
-            {charger.isDemo && "DEMO DATA · "}
+            Estimates include 10% charging losses ·{" "}
+            {estimate.details.session.assumptions.curveSource === "vehicle"
+              ? vehicle.isDemo
+                ? "demo SOC curve"
+                : "vehicle SOC curve"
+              : "fallback time model"}{" "}
+            ·{charger.isDemo && "DEMO DATA · "}
             {charger.availableStalls === null
               ? "Availability not known"
               : `${charger.availableStalls} of ${charger.stalls} connectors available`}{" "}
