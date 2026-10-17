@@ -2,6 +2,16 @@
 
 A mobile-first UK EV charging decision helper. Development works with explicitly labelled **demo** data; optional providers supply external location records. External records are not automatically live occupancy or verified prices. There is no charging, payment, wallet, roaming or RFID functionality.
 
+## Product vision, visual direction and release sequence
+
+**Consumer promise:** one clear place to answer *Where should I charge my particular EV, roughly what will it cost, and how long will it take?* The car's genuine connector, charging curve, battery and efficiency matter. Convenience and transparent source confidence matter more than listing every technical field.
+
+**Current interface styling** (`src/app/globals.css`): crisp, mobile-first utility design with navy `#10213d`, bright blue `#1568e8`, pale blue `#edf5ff`, green `#0c8a67`, white cards and understated borders on `#f7faff`. Inter/system sans typography; useful maps and accessible lists should present equivalent choices. Avoid promoting a demo tariff, stale availability or approximate straight-line distance as a reliable live quote or route.
+
+**Now:** validate one controlled real-provider and hosted-account experience: restricted Mapbox token, approved charging-data licensing, Supabase/auth/email, live map/list usability and visible data provenance. Prove trustworthy prices/availability before claiming real-time recommendations.
+
+**Later only with explicit scope decisions:** deeper route geometry, verified real-time occupancy/tariff feeds and broader coverage. Do **not** add payment, wallets, RFID, roaming or driveway-sharing workflows under the current Phase 1. See [PROJECT.md](PROJECT.md), [AGENTS.md](AGENTS.md) and the provider/engine notes in `docs/`.
+
 ## Run locally
 
 Requires Node.js 20.9+ and pnpm.
